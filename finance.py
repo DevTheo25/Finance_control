@@ -1,6 +1,4 @@
-from typing import Any, List, Optional, Union
 from flet import *
-import flet as ft
 from datetime import datetime
 import sqlite3
 from math import pi
@@ -916,6 +914,12 @@ def main(page: Page):
         card_number = form_card.content.controls[4].value
         card_cvc = form_card.content.controls[5].value 
         data = form_card.content.controls[6].value 
+
+        card_number = card_number.replace(" ", "")
+
+        grupos_de_4_digitos = [card_number[i:i+4] for i in range(0, len(card_number), 4)]
+
+        card_number = " ".join(grupos_de_4_digitos)
 
         if bank_name and card_number and card_cvc:
 
