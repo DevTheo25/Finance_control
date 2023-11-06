@@ -133,6 +133,7 @@ class FormContainer(UserControl):
                         color="white",
                         border_color="transparent",
                         hint_text="Nome da Nova Conta:",
+                        text_align="center",
                         hint_style=TextStyle(size=11, color="white"),
                         bgcolor=colors.BLACK38,
                     
@@ -147,16 +148,39 @@ class FormContainer(UserControl):
                         color="white",
                         border_color="transparent",
                         hint_text="Valor da Conta:",
+                        text_align="center",
                         hint_style=TextStyle(size=11, color="white"),
                         bgcolor=colors.BLACK38,
                         
                         
                     ),
 
+                    Row(
+                        alignment="center",
+                        controls=[
+                        IconButton(icons.REMOVE, on_click=None),
+                        TextField( 
+                                value="1",
+                                height=30,
+                                width=150,
+                                filled=True,
+                                border_radius=20,
+                                color="white",
+                                border_color="transparent",
+                                hint_text="Parcelas",
+                                
+                                hint_style=TextStyle(size=11, color="white"),
+                                text_align="center",
+                                bgcolor=colors.BLACK38,),
+                        IconButton(icons.ADD, on_click=None),
+                    ]),
+
+
+
                     ElevatedButton(
                         content=Text("Adicionar", color="white"),
-                            width=130, 
-                            height=40,
+                            width=120, 
+                            height=35,
                             on_click=None,
                             style=ButtonStyle(
                                 bgcolor={"": colors.BLACK38},
@@ -165,7 +189,6 @@ class FormContainer(UserControl):
                             ),
                     
                     ),
-
                     
                 ],
             )
@@ -859,7 +882,6 @@ def main(page: Page):
 
         dateTime = dateTime[:6] + dateTime[6:].capitalize()
 
-        
 
         if dropdown_mês.value is not None and dropdown_mês.value != "Todos Meses":
             mes_corrente = dropdown_mês.value
@@ -979,19 +1001,38 @@ def main(page: Page):
             form_card.update()
 
 
+    def minus_click(e):
+        valor = form_add.content.controls[2].controls[1].value
+        
+        if int(valor) > 1:
+            form_add.content.controls[2].controls[1].value = str(int(valor) - 1)
+            form_add.update()
+
+
+    def plus_click(e):
+        valor = form_add.content.controls[2].controls[1].value
+        
+        
+        form_add.content.controls[2].controls[1].value = str(int(valor) + 1)
+        form_add.update()
+
+
+
     def CreateToDoTask(e):
         form_add.content.controls[2].on_click = lambda e: AddTaskToScreen(e)
+        form_add.content.controls[2].controls[0].on_click = lambda e: minus_click(e)
+        form_add.content.controls[2].controls[2].on_click = lambda e: plus_click(e)
 
-        if form_add.height != 230:
-            form_add.height, form_add.opacity = 230, 1
+        if form_add.height != 250:
+            form_add.height, form_add.opacity = 250, 1
             form_add.update()
         else:
             form_add.height, form_add.opacity = 0, 0
 
             form_add.content.controls[0].value = None
             form_add.content.controls[1].value = None
-            form_add.content.controls[2].content.value = "Adicionar"
-            form_add.content.controls[2].on_click = lambda e: AddTaskToScreen(e)
+            form_add.content.controls[3].content.value = "Adicionar"
+            form_add.content.controls[3].on_click = lambda e: AddTaskToScreen(e)
             form_add.update()
 
     
@@ -1010,6 +1051,12 @@ def main(page: Page):
     def restore(e):
         pagina_2.controls[0].width = 350
         pagina_2.controls[0].scale = transform.Scale(1, alignment=alignment.center_right)
+        pagina_2.controls[0].border_radius=border_radius.only(
+            top_left=40,
+            top_right=40,
+            bottom_left=40,
+            bottom_right=40
+        )
         page.update()
 
 
@@ -1201,7 +1248,7 @@ def main(page: Page):
         width=350,
         height=700,
         border_radius=40,
-        border=border.all(1, "white"),
+        border=border.all(0.5, "white"),
         bgcolor=colors.BLACK26,
         padding=padding.only(left=30,top=30,right=100),
         
@@ -1300,6 +1347,7 @@ def main(page: Page):
                         width=350,
                         height=700,
                         bgcolor="black",
+                        border=border.all(0.5, "white"),
                         border_radius=40,
                         padding=padding.only(top=50, left=20, right=20, bottom=5),
                         animate=animation.Animation(600, AnimationCurve.DECELERATE),
@@ -1332,6 +1380,7 @@ def main(page: Page):
                         width=350,
                         height=0,
                         bgcolor="black",
+                        border=border.all(0.5, "white"),
                         border_radius=40,
                         padding=padding.only(top=50, left=20, right=20, bottom=5),
                         animate=animation.Animation(600, AnimationCurve.DECELERATE),
