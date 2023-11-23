@@ -5,6 +5,8 @@ from math import pi
 from time import sleep
 import threading
 import pyperclip
+import locale
+from dateutil.relativedelta import relativedelta 
 
 # Classe Database para Contas
 class Database:
@@ -58,6 +60,7 @@ class Database:
         cursor.execute("UPDATE tasks SET Task=?, Gasto=? WHERE Task=?", (new_name, new_price, old_name))
         db.commit()
 
+
 # Classe Database para cartões
 class Database_card:
 
@@ -107,6 +110,7 @@ class FormContainer(UserControl):
         self.func = func
 
         super().__init__()
+    
     
 
 
@@ -160,7 +164,6 @@ class FormContainer(UserControl):
                         controls=[
                         IconButton(icons.REMOVE, on_click=None),
                         TextField( 
-                                value="1",
                                 height=30,
                                 width=150,
                                 filled=True,
@@ -168,7 +171,6 @@ class FormContainer(UserControl):
                                 color="white",
                                 border_color="transparent",
                                 hint_text="Parcelas",
-                                
                                 hint_style=TextStyle(size=11, color="white"),
                                 text_align="center",
                                 bgcolor=colors.BLACK38,),
@@ -181,7 +183,7 @@ class FormContainer(UserControl):
                         content=Text("Adicionar", color="white"),
                             width=120, 
                             height=35,
-                            on_click=None,
+                            on_click=self.func,
                             style=ButtonStyle(
                                 bgcolor={"": colors.BLACK38},
                                 shape={"": RoundedRectangleBorder(radius=20)},
@@ -193,7 +195,8 @@ class FormContainer(UserControl):
                 ],
             )
         )
-    
+
+
 # Classe para adicionar novos cartões
 class AddCard(UserControl):
     def __init__(self, bank_name: str, card_number:str, card_cvc:str, data_valid: str):
@@ -392,6 +395,7 @@ class AddCard(UserControl):
                 ],
             ),
         )
+
 
 # Classe para abrir o form Input Card
 class FormCard(UserControl):
@@ -599,7 +603,6 @@ class Createtask(UserControl):
         )
 
 
-
 class AnimatedBox(UserControl):
 
     def __init__(self, border_color, bg_color, rotate_angle):
@@ -623,9 +626,7 @@ class AnimatedBox(UserControl):
             rotate=transform.Rotate(self.rotate_angle, alignment.center),
             animate_rotation=animation.Animation(700, "easeInOut"),
         )
-
-
-
+    
 
 def main(page: Page):
     page.horizontal_alignment = "center"
@@ -789,8 +790,6 @@ def main(page: Page):
 
     def UpdateFunction(e):
 
-        form_add.height, form_add.opacity = 230, 1
-
         name = e.controls[0].content.controls[0].controls[0].value.split(' R$ ')[0]
         price = e.controls[0].content.controls[0].controls[0].value.split(' R$ ')[1]
         if " - PAGO" in price:
@@ -800,13 +799,17 @@ def main(page: Page):
         (
             form_add.content.controls[0].value,
             form_add.content.controls[1].value,
-            form_add.content.controls[2].content.value,
-            form_add.content.controls[2].on_click,
+            form_add.content.controls[3].content.value,
+            form_add.content.controls[3].on_click,
         ) = (
             name, price, "Atualizar", lambda _: FinalizeUpdate(e))
         
-       
-        form_add.update()
+        if form_add.height == 250 and form_add.opacity == 1:
+            form_add.height, form_add.opacity = 0, 0
+            form_add.update()
+        else:
+            form_add.height, form_add.opacity = 250, 1
+            form_add.update()
 
 
     def FinalizeUpdate(e):
@@ -835,6 +838,7 @@ def main(page: Page):
         valor = e.controls[0].content.controls[0].controls[0].value
         name = e.controls[0].content.controls[0].controls[0].value.split(' R$ ')[0]
         valor_pago = f"{valor} - PAGO"
+
 
         if " - PAGO" in valor:
             # Remove " - PAGO" se estiver presente no valor
@@ -869,27 +873,32 @@ def main(page: Page):
 
     def AddTaskToScreen(e):
         
-        import locale
-
+        
         # Defina a localização para português do Brasil (pt_BR)
         locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
 
         # Obtenha a data e hora atual
         now = datetime.now()
+        mes = dropdown_mês.value
 
         # Formate a data e hora com o nome completo do mês em português
         dateTime = now.strftime("%d de %B de %Y %H:%M").capitalize()
 
-        dateTime = dateTime[:6] + dateTime[6:].capitalize()
+        dateTime = dateTime[6:].capitalize()
+        
+
+        parcelas = form_add.content.controls[2].controls[1].hint_text
+
+        if parcelas == "Parcelas":
+            parcelas = 0
+
+        parcelas = int(parcelas)
 
 
         if dropdown_mês.value is not None and dropdown_mês.value != "Todos Meses":
             mes_corrente = dropdown_mês.value
             # Converta a string dateTime em um objeto datetime
             dateTime = dateTime.replace(dateTime.split()[2], dropdown_mês.value)
-            
-
-
         else:
             mes_corrente = mes_atual()
 
@@ -898,7 +907,30 @@ def main(page: Page):
 
             db = Database.ConnectToDatabase()
 
-            Database.InsertDatabase(db, (form_add.content.controls[0].value, dateTime, form_add.content.controls[1].value, mes_corrente))
+
+            # Inserção da primeira parcela no banco de dados
+            Database.InsertDatabase(db, (
+                form_add.content.controls[0].value,
+                dateTime,
+                form_add.content.controls[1].value,
+                mes_corrente
+            ))
+
+            for i in range(1, parcelas):  # Começa em 1 porque a primeira parcela já foi inserida
+
+                # Calcula o novo mês adicionando o número da parcela ao mês atual
+                new_date = datetime.strptime("1 " + mes_corrente, "1 %B").replace(day=1) + relativedelta(months=i)
+                new_mes_corrente = new_date.strftime("%B").title()
+                
+
+                # Insere no banco de dados com o novo mês corrente
+                Database.InsertDatabase(db, (
+                    form_add.content.controls[0].value,
+                    dateTime,
+                    form_add.content.controls[1].value,
+                    new_mes_corrente
+                ))
+
 
             db.close()
 
@@ -906,7 +938,7 @@ def main(page: Page):
             pass
 
 
-
+        
         completename = f"{form_add.content.controls[0].value} R$ {form_add.content.controls[1].value}"
         color = "white"
         if form_add.content.controls[0].value and form_add.content.controls[1].value:
@@ -1002,24 +1034,26 @@ def main(page: Page):
 
 
     def minus_click(e):
-        valor = form_add.content.controls[2].controls[1].value
+        valor = form_add.content.controls[2].controls[1].hint_text
         
         if int(valor) > 1:
-            form_add.content.controls[2].controls[1].value = str(int(valor) - 1)
+            form_add.content.controls[2].controls[1].hint_text = str(int(valor) - 1)
             form_add.update()
-
+    
 
     def plus_click(e):
-        valor = form_add.content.controls[2].controls[1].value
+        valor = form_add.content.controls[2].controls[1].hint_text
+
+        if valor == "Parcelas":
+            valor = 0
         
         
-        form_add.content.controls[2].controls[1].value = str(int(valor) + 1)
+        form_add.content.controls[2].controls[1].hint_text = str(int(valor) + 1)
         form_add.update()
 
 
-
     def CreateToDoTask(e):
-        form_add.content.controls[2].on_click = lambda e: AddTaskToScreen(e)
+        form_add.content.controls[3].on_click = lambda e: AddTaskToScreen(e)
         form_add.content.controls[2].controls[0].on_click = lambda e: minus_click(e)
         form_add.content.controls[2].controls[2].on_click = lambda e: plus_click(e)
 
@@ -1032,6 +1066,7 @@ def main(page: Page):
             form_add.content.controls[0].value = None
             form_add.content.controls[1].value = None
             form_add.content.controls[3].content.value = "Adicionar"
+            form_add.content.controls[2].controls[1].hint_text = "Parcelas"
             form_add.content.controls[3].on_click = lambda e: AddTaskToScreen(e)
             form_add.update()
 
@@ -1058,7 +1093,6 @@ def main(page: Page):
             bottom_right=40
         )
         page.update()
-
 
 
     def get_dropdown_value(e):
@@ -1166,7 +1200,6 @@ def main(page: Page):
             page.update()
 
 
-
     dropdown_mês = Dropdown(
                     label="Escolha o Mês",
                     label_style=TextStyle(color="white"),
@@ -1199,8 +1232,7 @@ def main(page: Page):
                     
                         
                     )
-          
-     
+
 
     _main_column_ = Column(
         expand=True,
@@ -1438,9 +1470,7 @@ def main(page: Page):
             pagina_3.update()
 
 
-    page.add(contender
-
-    )
+    page.add(contender)
 
 
     page.update()

@@ -42,10 +42,16 @@ import sqlite3
 connection = sqlite3.connect('finanças.db')
 cursor = connection.cursor()
 
+query = "DELETE FROM tasks"
+cursor.execute(query)
+connection.commit()
 
-# Ler os dados atualizados
+# # Ler os dados atualizados
 query = "SELECT * FROM tasks"
 df = pd.read_sql_query(query, connection)
+
+
+
 
 # Fechar a conexão
 connection.close()
