@@ -38,13 +38,13 @@ class Database:
 
         cursor = db.cursor()
 
-        cursor.execute("SELECT Task, Date, Gasto, Pago, Mes FROM tasks")
+        cursor.execute("SELECT Task, Date, Gasto, Pago, Mes, Data_vencimento FROM tasks")
         results = cursor.fetchall()
         return results
 
     def InsertDatabase(db, values):
         cursor = db.cursor()
-        cursor.execute("INSERT INTO tasks (Task, Date, Gasto, Mes) VALUES (?,?,?,?)", values)
+        cursor.execute("INSERT INTO tasks (Task, Date, Gasto, Mes, Data_vencimento) VALUES (?,?,?,?,?)", values)
         db.commit()
 
     def DeleteDatabase(db, Task, Mes):
@@ -138,8 +138,8 @@ class FormContainer(UserControl):
                         border_color="transparent",
                         hint_text="Nome da Nova Conta:",
                         text_align="center",
-                        hint_style=TextStyle(size=11, color="white"),
-                        bgcolor=colors.BLACK38,
+                        hint_style=TextStyle(size=12, color=colors.BLUE_200),
+                        bgcolor=colors.BLACK87,
                     
      
                     ),
@@ -153,8 +153,8 @@ class FormContainer(UserControl):
                         border_color="transparent",
                         hint_text="Valor da Conta:",
                         text_align="center",
-                        hint_style=TextStyle(size=11, color="white"),
-                        bgcolor=colors.BLACK38,
+                        hint_style=TextStyle(size=12, color=colors.BLUE_200),
+                        bgcolor=colors.BLACK87,
                         
                         
                     ),
@@ -162,34 +162,33 @@ class FormContainer(UserControl):
                     Row(
                         alignment="center",
                         controls=[
-                        IconButton(icons.REMOVE, on_click=None),
+                        IconButton(icons.REMOVE, on_click=None, icon_color="black"),
                         TextField( 
                                 height=30,
                                 width=150,
-                                filled=True,
                                 border_radius=20,
-                                color="white",
                                 border_color="transparent",
                                 hint_text="Parcelas",
-                                hint_style=TextStyle(size=11, color="white"),
                                 text_align="center",
-                                bgcolor=colors.BLACK38,),
-                        IconButton(icons.ADD, on_click=None),
+                                hint_style=TextStyle(size=12, color=colors.BLUE_200),
+                                bgcolor=colors.BLACK87,),
+                        IconButton(icons.ADD, on_click=None, icon_color="black"),
                     ]),
 
 
+                    ElevatedButton(
+                        "Vencimento",
+                        icon=icons.CALENDAR_MONTH,
+                        on_click=None,
+                        bgcolor=colors.BLACK87,
+                    ),
 
                     ElevatedButton(
-                        content=Text("Adicionar", color="white"),
-                            width=120, 
-                            height=35,
-                            on_click=self.func,
-                            style=ButtonStyle(
-                                bgcolor={"": colors.BLACK38},
-                                shape={"": RoundedRectangleBorder(radius=20)},
-
-                            ),
-                    
+                        text="Adicionar",
+                        width=150,
+                        icon=icons.DONE,
+                        on_click=self.func,
+                        bgcolor=colors.BLACK87,
                     ),
                     
                 ],
@@ -635,7 +634,6 @@ def main(page: Page):
     page.window_height = 760
     page.window_resizable = False
     page.theme_mode = "dark"
-    
 
     
     def animate_boxes():
@@ -879,14 +877,14 @@ def main(page: Page):
 
         # Obtenha a data e hora atual
         now = datetime.now()
-        mes = dropdown_mês.value
 
         # Formate a data e hora com o nome completo do mês em português
         dateTime = now.strftime("%d de %B de %Y %H:%M").capitalize()
 
         dateTime = dateTime[6:].capitalize()
         
-
+        data_vencimento = date_picker.value
+        data_vencimento = data_vencimento.strftime('%d/%m/%Y')
         parcelas = form_add.content.controls[2].controls[1].hint_text
 
         if parcelas == "Parcelas":
@@ -903,7 +901,10 @@ def main(page: Page):
             mes_corrente = mes_atual()
 
 
-        if form_add.content.controls[0].value and form_add.content.controls[1].value:
+        if (form_add.content.controls[0].value 
+            and form_add.content.controls[1].value
+            and form_add.content.controls[2].controls[1].hint_text != "Parcelas"
+            and date_picker.value is not None):
 
             db = Database.ConnectToDatabase()
 
@@ -913,7 +914,8 @@ def main(page: Page):
                 form_add.content.controls[0].value,
                 dateTime,
                 form_add.content.controls[1].value,
-                mes_corrente
+                mes_corrente,
+                data_vencimento
             ))
 
             for i in range(1, parcelas):  # Começa em 1 porque a primeira parcela já foi inserida
@@ -928,7 +930,8 @@ def main(page: Page):
                     form_add.content.controls[0].value,
                     dateTime,
                     form_add.content.controls[1].value,
-                    new_mes_corrente
+                    new_mes_corrente,
+                    data_vencimento
                 ))
 
 
@@ -938,14 +941,17 @@ def main(page: Page):
             pass
 
 
-        
+        data_vencimento_to_add = f"Vencimento: {data_vencimento}"
         completename = f"{form_add.content.controls[0].value} R$ {form_add.content.controls[1].value}"
         color = "white"
-        if form_add.content.controls[0].value and form_add.content.controls[1].value:
+        if (form_add.content.controls[0].value 
+            and form_add.content.controls[1].value
+            and form_add.content.controls[2].controls[1].hint_text != "Parcelas"
+            and date_picker.value is not None):
             _main_column_.controls.append(
                 Createtask(
                     completename,
-                    dateTime,
+                    data_vencimento_to_add,
                     color,
                     DeleteFunction,
                     UpdateFunction,
@@ -1016,6 +1022,7 @@ def main(page: Page):
     def CreateCardTask(e):
 
         form_card.content.controls[7].on_click = lambda e: AddCardToSCreen(e)
+        
 
 
         if form_card.height != 400:
@@ -1023,6 +1030,7 @@ def main(page: Page):
             form_card.update()
 
         else:
+            
             form_card.height, form_card.opacity = 0, 0
             form_card.content.controls[3].value = None
             form_card.content.controls[4].value = None
@@ -1031,6 +1039,41 @@ def main(page: Page):
             form_card.content.controls[7].content.value = "Adicionar"
             form_card.content.controls[7].on_click = lambda e: AddCardToSCreen(e)
             form_card.update()
+
+
+    date_picker = DatePicker(
+    )
+
+    def CreateToDoTask(e):
+        form_add.content.controls[3].on_click = lambda _: date_picker.pick_date()
+        form_add.content.controls[4].on_click = lambda e: AddTaskToScreen(e)
+        form_add.content.controls[2].controls[0].on_click = lambda e: minus_click(e)
+        form_add.content.controls[2].controls[2].on_click = lambda e: plus_click(e)
+        date_picker.value = None
+        if form_add.height != 290:
+            form_add.height, form_add.opacity = 290, 1
+            form_add.update()
+        else:
+            form_add.height, form_add.opacity = 0, 0
+
+            form_add.content.controls[0].value = None
+            form_add.content.controls[1].value = None
+            form_add.content.controls[4].text = "Adicionar"
+            form_add.content.controls[2].controls[1].hint_text = "Parcelas"
+            form_add.content.controls[4].on_click = lambda e: AddTaskToScreen(e)
+            form_add.update()
+
+    
+    def shrink(e):
+        pagina_2.controls[0].width = 80
+        pagina_2.controls[0].scale = transform.Scale(0.9, alignment=alignment.center_right)
+        pagina_2.controls[0].border_radius=border_radius.only(
+            top_left=35,
+            top_right=0,
+            bottom_left=35,
+            bottom_right=0
+        )
+        page.update()
 
 
     def minus_click(e):
@@ -1050,38 +1093,6 @@ def main(page: Page):
         
         form_add.content.controls[2].controls[1].hint_text = str(int(valor) + 1)
         form_add.update()
-
-
-    def CreateToDoTask(e):
-        form_add.content.controls[3].on_click = lambda e: AddTaskToScreen(e)
-        form_add.content.controls[2].controls[0].on_click = lambda e: minus_click(e)
-        form_add.content.controls[2].controls[2].on_click = lambda e: plus_click(e)
-
-        if form_add.height != 250:
-            form_add.height, form_add.opacity = 250, 1
-            form_add.update()
-        else:
-            form_add.height, form_add.opacity = 0, 0
-
-            form_add.content.controls[0].value = None
-            form_add.content.controls[1].value = None
-            form_add.content.controls[3].content.value = "Adicionar"
-            form_add.content.controls[2].controls[1].hint_text = "Parcelas"
-            form_add.content.controls[3].on_click = lambda e: AddTaskToScreen(e)
-            form_add.update()
-
-    
-    def shrink(e):
-        pagina_2.controls[0].width = 80
-        pagina_2.controls[0].scale = transform.Scale(0.9, alignment=alignment.center_right)
-        pagina_2.controls[0].border_radius=border_radius.only(
-            top_left=35,
-            top_right=0,
-            bottom_left=35,
-            bottom_right=0
-        )
-        page.update()
-
 
     def restore(e):
         pagina_2.controls[0].width = 350
@@ -1130,7 +1141,7 @@ def main(page: Page):
                 _main_column_.controls.append(
                     Createtask(
                         task_combined,
-                        task[1],
+                        data_vancimento_add,
                         color,
                         DeleteFunction,
                         UpdateFunction,
@@ -1155,7 +1166,7 @@ def main(page: Page):
                     _main_column_.controls.append(
                         Createtask(
                             task_combined,
-                            task[1],
+                            data_vancimento_add,
                             color,
                             DeleteFunction,
                             UpdateFunction,
@@ -1368,8 +1379,6 @@ def main(page: Page):
             ]
         )
     )
-                          
-    
 
     pagina_2 = Row(
                 alignment="end",
@@ -1469,7 +1478,7 @@ def main(page: Page):
             pagina_2.update()
             pagina_3.update()
 
-
+    page.overlay.append(date_picker)
     page.add(contender)
 
 
@@ -1486,7 +1495,7 @@ def main(page: Page):
     # Inserido contas salvas no DB ao inciar a aplicação
     db = Database.ConnectToDatabase()
     for task in Database.ReadDatabase(db)[::-1]:
-
+        data_vancimento_add = f"Vencimento: {task[5]}"
         if task[4] == mes_atual():
             price_str = task[2]
             pago = task[3]
@@ -1503,7 +1512,7 @@ def main(page: Page):
             _main_column_.controls.append(
                 Createtask(
                     task_combined,
-                    task[1],
+                    data_vancimento_add,
                     color,
                     DeleteFunction,
                     UpdateFunction,
