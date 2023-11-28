@@ -884,7 +884,9 @@ def main(page: Page):
         dateTime = dateTime[6:].capitalize()
         
         data_vencimento = date_picker.value
+        data_vencimento_datetime = datetime.strptime(data_vencimento.strftime('%d/%m/%Y'), '%d/%m/%Y')
         data_vencimento = data_vencimento.strftime('%d/%m/%Y')
+
         parcelas = form_add.content.controls[2].controls[1].hint_text
 
         if parcelas == "Parcelas":
@@ -908,7 +910,7 @@ def main(page: Page):
 
             db = Database.ConnectToDatabase()
 
-
+            first_data_vencimento = f"Vencimento: {data_vencimento}"
             # Inserção da primeira parcela no banco de dados
             Database.InsertDatabase(db, (
                 form_add.content.controls[0].value,
@@ -918,7 +920,14 @@ def main(page: Page):
                 data_vencimento
             ))
 
-            for i in range(1, parcelas):  # Começa em 1 porque a primeira parcela já foi inserida
+            for i in range(1, parcelas):
+
+                # Calcula a nova data de vencimento adicionando 'i' meses à data de vencimento inicial
+                new_vencimento_datetime = data_vencimento_datetime + relativedelta(months=i)
+                # Formata a nova data de vencimento para uma string no formato desejado
+                new_data_vencimento = new_vencimento_datetime.strftime('%d/%m/%Y')
+                
+                    
 
                 # Calcula o novo mês adicionando o número da parcela ao mês atual
                 new_date = datetime.strptime("1 " + mes_corrente, "1 %B").replace(day=1) + relativedelta(months=i)
@@ -931,7 +940,7 @@ def main(page: Page):
                     dateTime,
                     form_add.content.controls[1].value,
                     new_mes_corrente,
-                    data_vencimento
+                    new_data_vencimento
                 ))
 
 
@@ -941,7 +950,6 @@ def main(page: Page):
             pass
 
 
-        data_vencimento_to_add = f"Vencimento: {data_vencimento}"
         completename = f"{form_add.content.controls[0].value} R$ {form_add.content.controls[1].value}"
         color = "white"
         if (form_add.content.controls[0].value 
@@ -951,7 +959,7 @@ def main(page: Page):
             _main_column_.controls.append(
                 Createtask(
                     completename,
-                    data_vencimento_to_add,
+                    first_data_vencimento,
                     color,
                     DeleteFunction,
                     UpdateFunction,
@@ -1126,7 +1134,7 @@ def main(page: Page):
         if value_dropdown == "Todos Meses":
 
             for task in Database.ReadDatabase(db)[::-1]:
-                
+                data_vancimento_format = f"Vencimento: {task[5]}"
                 price_str = task[2]
                 pago = task[3]
 
@@ -1137,11 +1145,11 @@ def main(page: Page):
                     task_combined += " - PAGO"
 
                 color = "green" if pago == 1 else "white"
-
+                
                 _main_column_.controls.append(
                     Createtask(
                         task_combined,
-                        data_vancimento_add,
+                        data_vancimento_format,
                         color,
                         DeleteFunction,
                         UpdateFunction,
@@ -1151,6 +1159,7 @@ def main(page: Page):
         
         else:
             for task in Database.ReadDatabase(db)[::-1]:
+                data_vancimento_format = f"Vencimento: {task[5]}"
                 if task[4] == value_dropdown:
                     price_str = task[2]
                     pago = task[3]
@@ -1166,7 +1175,7 @@ def main(page: Page):
                     _main_column_.controls.append(
                         Createtask(
                             task_combined,
-                            data_vancimento_add,
+                            data_vancimento_format,
                             color,
                             DeleteFunction,
                             UpdateFunction,
@@ -1453,7 +1462,6 @@ def main(page: Page):
             )
 
 
-
     contender = Container(
         width=350,
         height= 700,
@@ -1487,6 +1495,8 @@ def main(page: Page):
 
 
     form_add = pagina_2.controls[0].content.controls[1].controls[0]
+
+    print(pagina_2.controls[0].content.controls[1].controls[0])
 
     form_card = pagina_3.controls[0].content.controls[2].controls[0]
 
